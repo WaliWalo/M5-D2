@@ -24,8 +24,6 @@ router.get("/", (req, res) => {
 });
 
 router.get("/:id", (req, res) => {
-  // const buffer = fs.readFileSync(path.join(__dirname, "students.json"));
-  // const studentsArray = JSON.parse(buffer.toString());
   const data = getFileContent();
   //filter the data to only show a single user with the exact id from req.params.id
   const user = data.filter((user) => user.id === req.params.id);
@@ -36,24 +34,34 @@ router.get("/:id", (req, res) => {
 router.post("/", (req, res) => {
   //create a new user varialble from the req.body
   const newUser = req.body;
-  // const buffer = fs.readFileSync(path.join(__dirname, "students.json"));
-  // const content = buffer.toString();
-  // const studentsDB = JSON.parse(content);
   const data = getFileContent();
-  //create a property id for the new user with a unique id
-  newUser.id = uniqid();
-  //append the newUser to the existing array
-  data.push(newUser);
-  //write file by getting the path of the file and stringify the array of data
-  fs.writeFileSync(path.join(__dirname, "students.json"), JSON.stringify(data));
+  //check email
+  console.log(newUser);
+  let filteredEmail = [];
+  filteredEmail = data.filter((x) => {
+    console.log(x.email, newUser);
+    return newUser.email === x.email;
+  });
+  if (filteredEmail.length !== 0) {
+    res
+      .status(200)
+      .send("An account has been created with the same email address!");
+  } else {
+    //create a property id for the new user with a unique id
+    newUser.id = uniqid();
+    //append the newUser to the existing array
+    data.push(newUser);
+    //write file by getting the path of the file and stringify the array of data
+    fs.writeFileSync(
+      path.join(__dirname, "students.json"),
+      JSON.stringify(data)
+    );
 
-  res.status(201).send({ id: newUser.id });
+    res.status(201).send(newUser);
+  }
 });
 
 router.delete("/:id", (req, res) => {
-  // const buffer = fs.readFileSync(path.join(__dirname, "students.json"));
-  // const content = buffer.toString();
-  // const studentsDB = JSON.parse(content);
   const data = getFileContent();
   //filter the data to exclude the student with id equal to req.params.id
   const newJson = data.filter((student) => student.id !== req.params.id);
@@ -67,9 +75,6 @@ router.delete("/:id", (req, res) => {
 });
 
 router.put("/:id", (req, res) => {
-  // const buffer = fs.readFileSync(path.join(__dirname, "students.json"));
-  // const content = buffer.toString();
-  // const studentsDB = JSON.parse(content);
   const data = getFileContent();
   // similar to the delete method, filter out the student that need to be modified
   const newJson = data.filter((x) => x.id !== req.params.id);
