@@ -1,0 +1,2 @@
+Node.js is a javascript runtime built on chrome's v8 javascript engine, it executes javascript code outside a web browser such as using it for back end
+Job of a javascript/v8 engine is to translate javascript to a more lower level language such as machine language
