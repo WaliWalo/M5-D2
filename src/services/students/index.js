@@ -90,11 +90,11 @@ router.post(
       .exists()
       .withMessage("Insert a name please!"),
     check("surname").exists().withMessage("Insert a surname please!"),
-    // check("dob")
-    //   .isDate()
-    //   .withMessage("Date of Birth must be date!")
-    //   .exists()
-    //   .withMessage("Insert Date of Birth Please!"),
+    check("dob")
+      .isISO8601()
+      .withMessage("Date of Birth must be date!")
+      .exists()
+      .withMessage("Insert Date of Birth Please!"),
     check("email")
       .isEmail()
       .withMessage("Email must be of type email")
@@ -104,7 +104,7 @@ router.post(
       const data = getFileContent();
       const filtered = data.filter((user) => user.email === value);
       if (filtered.length !== 0) {
-        throw new Error("E-mail already in use");
+        throw new Error("E-mail already in use!");
       }
       return true;
     }),
