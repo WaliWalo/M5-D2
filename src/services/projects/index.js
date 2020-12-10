@@ -3,8 +3,14 @@ const fs = require("fs"); //import to read and write file
 const path = require("path"); //for relative pathing to json file
 const uniqid = require("uniqid"); //for generating unique id for each student
 const { check, validationResult, body } = require("express-validator");
-
 const router = express.Router();
+const multer = require("multer");
+const { readDB, writeDB } = require("../../lib/utilities");
+const { writeFile } = require("fs-extra");
+const upload = multer({});
+const projectsFolderPath = path.join(__dirname, "../../../public/img/projects");
+const studentFilePath = path.join(__dirname, "../students/students.json");
+const projectFilePath = path.join(__dirname, "projects.json");
 
 //get file content
 function getFileContent() {
@@ -18,9 +24,9 @@ function getFileContent() {
 }
 
 //get all projects
-router.get("/", (req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
-    const data = getFileContent();
+    const data = await readDB(projectFilePath);
     if (req.query && req.query.name) {
       const filteredData = data.filter(
         (user) =>
@@ -36,9 +42,9 @@ router.get("/", (req, res, next) => {
   }
 });
 
-router.get("/:id", (req, res, next) => {
+router.get("/:id", async (req, res, next) => {
   try {
-    const data = getFileContent();
+    const data = await readDB(projectFilePath);
     //filter the data to only show a single user with the exact id from req.params.id
     const project = data.filter((project) => project.id === req.params.id);
     if (project.length > 0) {
@@ -74,7 +80,7 @@ router.post(
     //   .exists()
     //   .withMessage("Insert Date of Birth Please!"),
   ],
-  (req, res, next) => {
+  async (req, res, next) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -85,15 +91,16 @@ router.post(
       } else {
         //create a new project varialble from the req.body
         const newProject = req.body;
-        const data = getFileContent();
+        const data = await readDB(projectFilePath);
         //create a property id for the new project with a unique id
         newProject.id = uniqid();
         //GET STUDENTS AND UPDATE
-        const buffer = fs.readFileSync(
-          path.join(__dirname, "../students/students.json")
-        );
-        const content = buffer.toString();
-        const studentsDB = JSON.parse(content);
+        // const buffer = fs.readFileSync(
+        //   path.join(__dirname, "../students/students.json")
+        // );
+        // const content = buffer.toString();
+        // const studentsDB = JSON.parse(content);
+        const studentsDB = await readDB(studentFilePath);
         const newStudentsDB = studentsDB.filter(
           (student) => student.id !== newProject.studentId
         );
@@ -108,17 +115,19 @@ router.post(
         }
         modifiedStudent[0].numberOfProjects = temp + 1;
         newStudentsDB.push(modifiedStudent[0]);
-        fs.writeFileSync(
-          path.join(__dirname, "../students/students.json"),
-          JSON.stringify(newStudentsDB)
-        );
+        // fs.writeFileSync(
+        //   path.join(__dirname, "../students/students.json"),
+        //   JSON.stringify(newStudentsDB)
+        // );
+        await writeDB(studentFilePath, newStudentsDB);
         //append the newProject to the existing array
         data.push(newProject);
         //write file by getting the path of the file and stringify the array of data
-        fs.writeFileSync(
-          path.join(__dirname, "projects.json"),
-          JSON.stringify(data)
-        );
+        // fs.writeFileSync(
+        //   path.join(__dirname, "projects.json"),
+        //   JSON.stringify(data)
+        // );
+        await writeDB(projectFilePath, data);
 
         res.status(201).send(newProject);
       }
@@ -128,8 +137,8 @@ router.post(
   }
 );
 
-router.delete("/:id", (req, res) => {
-  const data = getFileContent();
+router.delete("/:id", async (req, res) => {
+  const data = await readDB(projectFilePath);
   //filter the data to exclude the project with id equal to req.params.id
   const newJson = data.filter((project) => project.id !== req.params.id);
   //get selected project
@@ -137,11 +146,12 @@ router.delete("/:id", (req, res) => {
     (project) => project.id === req.params.id
   );
   //GET STUDENTS AND UPDATE PROJECT COUNT
-  const buffer = fs.readFileSync(
-    path.join(__dirname, "../students/students.json")
-  );
-  const content = buffer.toString();
-  const studentsDB = JSON.parse(content);
+  // const buffer = fs.readFileSync(
+  //   path.join(__dirname, "../students/students.json")
+  // );
+  // const content = buffer.toString();
+  // const studentsDB = JSON.parse(content);
+  const studentsDB = await readDB(studentFilePath);
   const newStudentsDB = studentsDB.filter(
     (student) => student.id !== selectedProject[0].studentId
   );
@@ -155,21 +165,22 @@ router.delete("/:id", (req, res) => {
     modifiedStudent[0].numberOfProjects = 0;
   }
   newStudentsDB.push(modifiedStudent[0]);
-  fs.writeFileSync(
-    path.join(__dirname, "../students/students.json"),
-    JSON.stringify(newStudentsDB)
-  );
+  // fs.writeFileSync(
+  //   path.join(__dirname, "../students/students.json"),
+  //   JSON.stringify(newStudentsDB)
+  // );
+  await writeDB(studentFilePath, newStudentsDB);
   //write file by getting the path of the file and stringify the array of data
-  fs.writeFileSync(
-    path.join(__dirname, "projects.json"),
-    JSON.stringify(newJson)
-  );
-
+  // fs.writeFileSync(
+  //   path.join(__dirname, "projects.json"),
+  //   JSON.stringify(newJson)
+  // );
+  await writeDB(projectFilePath, newJson);
   res.status(204).send();
 });
 
-router.put("/:id", (req, res) => {
-  const data = getFileContent();
+router.put("/:id", async (req, res) => {
+  const data = await readDB(projectFilePath);
   // similar to the delete method, filter out the project that need to be modified
   const newJson = data.filter((x) => x.id !== req.params.id);
   // get the modified project from req.body
@@ -179,12 +190,30 @@ router.put("/:id", (req, res) => {
   // add the modified project back to the newJson
   newJson.push(modifiedProject);
   // write the newJson into the file
-  fs.writeFileSync(
-    path.join(__dirname, "projects.json"),
-    JSON.stringify(newJson)
-  );
+  // fs.writeFileSync(
+  //   path.join(__dirname, "projects.json"),
+  //   JSON.stringify(newJson)
+  // );
+  await writeDB(projectFilePath, newJson);
 
   res.send(newJson);
 });
+
+router.post(
+  "/:id/uploadPhoto",
+  upload.single("profImg"),
+  async (req, res, next) => {
+    try {
+      await writeFile(
+        path.join(projectsFolderPath, `${req.params.id}.jpg`),
+        req.file.buffer
+      );
+      res.send("Image uploaded.");
+    } catch (error) {
+      console.log(error);
+      next(error);
+    }
+  }
+);
 
 module.exports = router;
