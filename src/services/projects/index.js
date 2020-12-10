@@ -11,7 +11,7 @@ const upload = multer({});
 const projectsFolderPath = path.join(__dirname, "../../../public/img/projects");
 const studentFilePath = path.join(__dirname, "../students/students.json");
 const projectFilePath = path.join(__dirname, "projects.json");
-
+const reviewsFilePath = path.join(__dirname, "reviews.json");
 //get file content
 function getFileContent() {
   //get the path to file
@@ -197,6 +197,42 @@ router.put("/:id", async (req, res) => {
   await writeDB(projectFilePath, newJson);
 
   res.send(newJson);
+});
+
+router.get("/:id/reviews", async (req, res, next) => {
+  try {
+    const reviewsDB = await readDB(reviewsFilePath);
+    const reviews = reviewsDB.filter(
+      (review) => review.projectId === req.params.id
+    );
+    if (reviews.length > 0) {
+      res.send(reviews);
+    } else {
+      const err = new Error();
+      err.httpStatusCode = 404;
+      next(err);
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/:id/reviews", async (req, res, next) => {
+  try {
+    const reviews = await readDB(reviewsFilePath);
+    const newReview = {
+      ...req.body,
+      id: uniqid(),
+      createdAt: new Date(),
+      projectId: req.params.id,
+    };
+    console.log(newReview);
+    reviews.push(newReview);
+    await writeDB(reviewsFilePath, reviews);
+    res.status(201).send(newReview);
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.post(
